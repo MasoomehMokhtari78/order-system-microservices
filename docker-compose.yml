@@ -1,0 +1,80 @@
+version: "3.9"
+
+services:
+  order_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: order_db
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d order_db -h localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  inventory_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: inventory_db
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d inventory_db -h localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  payment_db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: payment_db
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d payment_db -h localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  order_service:
+    build: ./order_service
+    volumes:
+      - ./order_service/app:/app
+    ports:
+      - "8001:8000"
+    depends_on:
+      order_db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@order_db:5432/order_db
+
+  inventory_service:
+    build: ./inventory_service
+    volumes:
+      - ./inventory_service/app:/app
+    ports:
+      - "8002:8000"
+    depends_on:
+      inventory_db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@inventory_db:5432/inventory_db
+
+  payment_service:
+    build: ./payment_service
+    volumes:
+      - ./payment_service/app:/app
+    ports:
+      - "8003:8000"
+    depends_on:
+      payment_db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@payment_db:5432/payment_db
