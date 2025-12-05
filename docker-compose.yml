@@ -13,7 +13,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d order_db -h localhost"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
   inventory_db:
     image: postgres:15
@@ -27,7 +27,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d inventory_db -h localhost"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
   payment_db:
     image: postgres:15
@@ -41,7 +41,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres -d payment_db -h localhost"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
   order_service:
     build: ./order_service
@@ -78,3 +78,18 @@ services:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@payment_db:5432/payment_db
+
+  tests:
+    build:
+      context: ./tests
+    volumes:
+      - ./tests:/tests
+    depends_on:
+      - order_service
+      - inventory_service
+      - payment_service
+    environment:
+      ORDER_URL: http://order_service:8000/api/v1/orders
+      INVENTORY_URL: http://inventory_service:8000/api/v1/stock
+      PAYMENT_URL: http://payment_service:8000/api/v1/payments
+    command: ["pytest", "-q", "test_e2e.py"]
